@@ -1,0 +1,23 @@
+[
+  {
+    "project": "Wayzata Project",
+    "city": "Wayzata",
+    "latitude": 44.96,
+    "longitude": -93.51,
+    "start_date": "2026-01-01"
+  },
+  {
+    "project": "Medina Project",
+    "city": "Medina",
+    "latitude": 44.95,
+    "longitude": -93.58,
+    "start_date": "2026-01-01"
+  },
+  {
+    "project": "Plymouth Project",
+    "city": "Plymouth",
+    "latitude": 45.01,
+    "longitude": -93.46,
+    "start_date": "2026-01-01"
+  }
+]

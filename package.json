@@ -1,0 +1,11 @@
+{
+  "name": "weather-saver",
+  "version": "1.0.0",
+  "description": "Fetches and logs humidity data for construction project cities",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "history": "node history.js"
+  }
+}
