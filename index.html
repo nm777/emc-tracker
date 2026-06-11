@@ -21,11 +21,13 @@
     display: flex; gap: 1rem; align-items: center;
     margin-bottom: 1.5rem; flex-wrap: wrap;
   }
-  select {
+  select, input[type="text"], input[type="number"], input[type="date"] {
     padding: 0.5rem 1rem; border-radius: 0.5rem;
     border: 1px solid #334155; background: #1e293b;
-    color: #e2e8f0; font-size: 1rem; min-width: 250px;
+    color: #e2e8f0; font-size: 1rem;
   }
+  select { min-width: 250px; }
+  input { width: 100%; }
   .stats {
     display: flex; gap: 1.5rem; font-size: 0.875rem;
     color: #94a3b8; flex-wrap: wrap;
@@ -37,7 +39,7 @@
     border: 1px solid #334155; padding: 1rem;
     position: relative;
   }
-  .emc-chart { height: calc(100vh - 26rem); min-height: 280px; }
+  .emc-chart { height: calc(100vh - 32rem); min-height: 280px; }
   .swing-chart { height: 140px; margin-top: 1rem; }
   .no-data {
     display: flex; align-items: center; justify-content: center;
@@ -96,6 +98,91 @@
     font-size: 0.75rem;
     color: #e2e8f0;
   }
+
+  /* Config panel */
+  .config-toggle {
+    margin-left: auto;
+    padding: 0.45rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.15s;
+  }
+  .config-toggle:hover { border-color: #3b82f6; color: #e2e8f0; }
+  .config-toggle.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+  .config-panel {
+    display: none;
+    margin-bottom: 1.5rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+  }
+  .config-panel.open { display: block; }
+
+  .config-panel h3 {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .city-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 100px 110px 140px auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #1e293b;
+  }
+  .city-row.header {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #334155;
+  }
+  .city-row.header > div:last-child { visibility: hidden; }
+  .city-row label { display: none; }
+  .btn {
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: #3b82f6; color: #e2e8f0; }
+  .btn-danger:hover { border-color: #f87171; color: #f87171; }
+  .btn-primary {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+  }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .config-actions {
+    display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center;
+  }
+  .collect-log {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .collect-log.open { display: block; }
 </style>
 </head>
 <body>
@@ -106,7 +193,30 @@
       <option value="">— Select a project —</option>
     </select>
     <div class="stats" id="stats"></div>
+    <button class="config-toggle" id="configToggle">Manage Projects</button>
   </div>
+
+  <div class="config-panel" id="configPanel">
+    <h3>Project Configuration</h3>
+    <div id="cityList">
+      <div class="city-row header">
+        <div>Project Name</div>
+        <div>City</div>
+        <div>Latitude</div>
+        <div>Longitude</div>
+        <div>Start Date</div>
+        <div></div>
+      </div>
+    </div>
+    <div class="config-actions">
+      <button class="btn" id="addCityBtn">+ Add Project</button>
+      <button class="btn btn-primary" id="saveConfigBtn">Save</button>
+      <button class="btn btn-primary" id="collectBtn">Collect Data</button>
+      <span id="saveStatus" style="font-size:0.8rem;color:#34d399;display:none">Saved</span>
+    </div>
+    <div class="collect-log" id="collectLog"></div>
+  </div>
+
   <div class="chart-wrap" id="chartArea" style="display:none">
     <div class="emc-chart"><canvas id="emcChart"></canvas></div>
     <div class="swing-chart"><canvas id="swingChart"></canvas></div>
@@ -122,14 +232,11 @@
 
   <div class="info-panel">
     <h3>Understanding This Data</h3>
-
     <h4>What is EMC?</h4>
     <p>Equilibrium Moisture Content (EMC) is the moisture percentage wood will naturally absorb or release until it balances with the surrounding air. It is calculated from two weather station readings — relative humidity and temperature — using the <strong>Hailwood-Horrobin equation</strong>, the standard formula published in the USDA Forest Products Laboratory Wood Handbook (FPL-GTR-282), Chapter 4.</p>
-
     <h4>Why it matters for construction</h4>
     <p>Wood expands as it absorbs moisture and contracts as it dries. A 1% change in EMC causes roughly 1% dimensional change across the grain in flat-sawn lumber. When the environment swings wildly — for example from 97% humidity at dawn to 32% by afternoon — the wood is subjected to stress it cannot immediately respond to. Over time this causes warping, checking, cupping, joint failure, and finish defects.</p>
     <p>In a humidity-controlled environment (HVAC, dehumidifiers), EMC typically stays within 1–2% on a given day. The colored bars below the chart show how far outside that range each day actually was, proving whether or not the environment was controlled.</p>
-
     <h4>Daily Swing Risk Levels</h4>
     <div class="risk-grid">
       <div><span class="dot" style="background:#64748b"></span><strong style="color:#64748b">Safe</strong> ≤ 2%</div>
@@ -141,26 +248,128 @@
       <div><span class="dot" style="background:#dc2626"></span><strong style="color:#dc2626">Extreme</strong> &gt; 10%</div>
       <div>Severe environmental failure. Rapid moisture cycling will cause visible defects in wood products.</div>
     </div>
-
     <h4>How the numbers are calculated</h4>
     <p>Hourly relative humidity and temperature data is sourced from <strong>Open-Meteo.com</strong> (historical weather station archive). For each hour, EMC is computed using the Hailwood-Horrobin two-hydrate model. Each day is then summarized into four values: minimum hourly EMC, maximum hourly EMC, the average across all hours, and the <code>swing</code> (max minus min) representing the total moisture stress the wood experienced that day.</p>
-
     <h4>Validation</h4>
     <p>Run <code>node validate.js</code> to verify the EMC formula against 25 reference points from USDA FPL Wood Handbook Table 4-2. The formula is accurate to within ±0.6% of the published table values.</p>
   </div>
-  <div class="no-data" id="noData">Run <code>node index.js</code> to collect data, then refresh.</div>
+  <div class="no-data" id="noData" style="display:none">Loading...</div>
 
-<script src="data.js"></script>
 <script>
+const IS_SERVER = window.location.protocol === "http:" || window.location.protocol === "https:";
+let cities = [];
+let emcChart = null, swingChart = null;
+
 const select = document.getElementById("projectSelect");
 const statsEl = document.getElementById("stats");
 const noData = document.getElementById("noData");
 const chartArea = document.getElementById("chartArea");
-let emcChart = null, swingChart = null;
+const configToggle = document.getElementById("configToggle");
+const configPanel = document.getElementById("configPanel");
+const cityList = document.getElementById("cityList");
+const addCityBtn = document.getElementById("addCityBtn");
+const saveConfigBtn = document.getElementById("saveConfigBtn");
+const collectBtn = document.getElementById("collectBtn");
+const saveStatus = document.getElementById("saveStatus");
+const collectLog = document.getElementById("collectLog");
 
-if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length === 0) {
-  noData.style.display = "flex";
-} else {
+configToggle.addEventListener("click", () => {
+  configPanel.classList.toggle("open");
+  configToggle.classList.toggle("active");
+});
+
+function createCityRow(data = {}) {
+  const row = document.createElement("div");
+  row.className = "city-row";
+  row.innerHTML = `
+    <div><label>Project</label><input type="text" data-field="project" value="${data.project || ""}" placeholder="Project name"></div>
+    <div><label>City</label><input type="text" data-field="city" value="${data.city || ""}" placeholder="City"></div>
+    <div><label>Lat</label><input type="number" step="0.01" data-field="latitude" value="${data.latitude || ""}" placeholder="Lat"></div>
+    <div><label>Lon</label><input type="number" step="0.01" data-field="longitude" value="${data.longitude || ""}" placeholder="Lon"></div>
+    <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
+    <div><button class="btn btn-danger remove-btn">Remove</button></div>
+  `;
+  row.querySelector(".remove-btn").addEventListener("click", () => row.remove());
+  return row;
+}
+
+function renderCityRows(citiesData) {
+  cityList.querySelectorAll(".city-row:not(.header)").forEach(r => r.remove());
+  for (const c of citiesData) {
+    cityList.appendChild(createCityRow(c));
+  }
+}
+
+function getCityInputs() {
+  const rows = cityList.querySelectorAll(".city-row:not(.header)");
+  return Array.from(rows).map(row => {
+    const obj = {};
+    row.querySelectorAll("input").forEach(inp => {
+      const f = inp.dataset.field;
+      obj[f] = f === "latitude" || f === "longitude" ? parseFloat(inp.value) : inp.value;
+    });
+    return obj;
+  }).filter(c => c.project && c.city);
+}
+
+addCityBtn.addEventListener("click", () => {
+  cityList.appendChild(createCityRow());
+});
+
+saveConfigBtn.addEventListener("click", async () => {
+  const data = getCityInputs();
+  if (IS_SERVER) {
+    await fetch("/api/cities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  }
+  cities = data;
+  saveStatus.style.display = "inline";
+  setTimeout(() => saveStatus.style.display = "none", 2000);
+});
+
+collectBtn.addEventListener("click", async () => {
+  if (!IS_SERVER) {
+    collectLog.textContent = "Data collection requires the server. Run: node server.js";
+    collectLog.classList.add("open");
+    return;
+  }
+  collectBtn.disabled = true;
+  collectLog.textContent = "Collecting data...\n";
+  collectLog.classList.add("open");
+  try {
+    const resp = await fetch("/api/collect", { method: "POST" });
+    const text = await resp.text();
+    collectLog.textContent = text + "\n\nReloading chart data...";
+    const script = document.createElement("script");
+    script.src = "data.js?" + Date.now();
+    script.onload = () => {
+      collectLog.textContent += "\nDone. Refresh complete.";
+      collectBtn.disabled = false;
+      populateSelect();
+    };
+    document.body.appendChild(script);
+  } catch (err) {
+    collectLog.textContent += "\nError: " + err.message;
+    collectBtn.disabled = false;
+  }
+});
+
+function populateSelect() {
+  select.innerHTML = '<option value="">— Select a project —</option>';
+  statsEl.innerHTML = "";
+  if (emcChart) emcChart.destroy();
+  if (swingChart) swingChart.destroy();
+
+  if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length === 0) {
+    noData.style.display = "flex";
+    noData.textContent = "No data yet. Add projects above and click Collect Data.";
+    chartArea.style.display = "none";
+    return;
+  }
+
   noData.style.display = "none";
   chartArea.style.display = "block";
 
@@ -170,20 +379,15 @@ if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length ==
     opt.textContent = `${project} — ${HUMIDITY_DATA[project].city}`;
     select.appendChild(opt);
   }
-
-  select.addEventListener("change", () => {
-    if (emcChart) emcChart.destroy();
-    if (swingChart) swingChart.destroy();
-    statsEl.innerHTML = "";
-    if (!select.value) return;
-    render(select.value);
-  });
-
-  if (Object.keys(HUMIDITY_DATA).length === 1) {
-    select.value = Object.keys(HUMIDITY_DATA)[0];
-    render(select.value);
-  }
 }
+
+select.addEventListener("change", () => {
+  if (emcChart) emcChart.destroy();
+  if (swingChart) swingChart.destroy();
+  statsEl.innerHTML = "";
+  if (!select.value) return;
+  render(select.value);
+});
 
 function render(project) {
   const { city, days } = HUMIDITY_DATA[project];
@@ -198,7 +402,6 @@ function render(project) {
   const overallMax = Math.max(...maxs);
   const worstSwing = Math.max(...swings);
   const dangerDays = days.filter(d => d.swing > 2).length;
-  const rangeSpan = (overallMax - overallMin).toFixed(1);
   const highRiskDays = days.filter(d => d.swing > 5).length;
   const extremeDays = days.filter(d => d.swing > 10).length;
 
@@ -218,48 +421,19 @@ function render(project) {
     data: {
       labels,
       datasets: [
-        {
-          label: "Max EMC",
-          data: maxs,
-          borderColor: "transparent",
-          backgroundColor: "rgba(59,130,246,0.15)",
-          fill: "+1",
-          pointRadius: 0,
-          tension: 0.3,
-        },
-        {
-          label: "Avg EMC",
-          data: avgs,
-          borderColor: "#3b82f6",
-          backgroundColor: "transparent",
-          borderWidth: 2,
-          pointRadius,
-          tension: 0.3,
-        },
-        {
-          label: "Min EMC",
-          data: mins,
-          borderColor: "transparent",
-          backgroundColor: "rgba(59,130,246,0.15)",
-          fill: "-1",
-          pointRadius: 0,
-          tension: 0.3,
-        }
+        { label: "Max EMC", data: maxs, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.15)", fill: "+1", pointRadius: 0, tension: 0.3 },
+        { label: "Avg EMC", data: avgs, borderColor: "#3b82f6", backgroundColor: "transparent", borderWidth: 2, pointRadius, tension: 0.3 },
+        { label: "Min EMC", data: mins, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.15)", fill: "-1", pointRadius: 0, tension: 0.3 }
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: "#1e293b",
-          borderColor: "#334155",
-          borderWidth: 1,
-          titleColor: "#e2e8f0",
-          bodyColor: "#94a3b8",
-          caretPadding: 20,
+          backgroundColor: "#1e293b", borderColor: "#334155", borderWidth: 1,
+          titleColor: "#e2e8f0", bodyColor: "#94a3b8", caretPadding: 20,
           callbacks: {
             title: (items) => items[0].label,
             label: () => "",
@@ -275,66 +449,55 @@ function render(project) {
         }
       },
       scales: {
-        x: {
-          type: "time",
-          time: { unit: "day", tooltipFormat: "MMM d, yyyy" },
-          ticks: { color: "#64748b", maxTicksLimit: 15 },
-          grid: { color: "#1e293b" }
-        },
-        y: {
-          ticks: { color: "#64748b", callback: (v) => v + "%" },
-          grid: { color: "#334155" },
-          title: { display: true, text: "Equilibrium Moisture Content (%)", color: "#94a3b8" }
-        }
+        x: { type: "time", time: { unit: "day", tooltipFormat: "MMM d, yyyy" }, ticks: { color: "#64748b", maxTicksLimit: 15 }, grid: { color: "#1e293b" } },
+        y: { ticks: { color: "#64748b", callback: (v) => v + "%" }, grid: { color: "#334155" }, title: { display: true, text: "Equilibrium Moisture Content (%)", color: "#94a3b8" } }
       }
     }
   });
 
   const swingColors = swings.map(s => {
-    if (s > 10) return "rgba(220,38,38,0.9)";       // extreme - bright red
-    if (s > 5) return "rgba(248,113,113,0.8)";      // high - light red
-    if (s > 2) return "rgba(251,191,36,0.7)";       // caution - amber
-    return "rgba(100,116,139,0.3)";                  // safe - dim
+    if (s > 10) return "rgba(220,38,38,0.9)";
+    if (s > 5) return "rgba(248,113,113,0.8)";
+    if (s > 2) return "rgba(251,191,36,0.7)";
+    return "rgba(100,116,139,0.3)";
   });
 
   swingChart = new Chart(document.getElementById("swingChart"), {
     type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Daily Swing",
-        data: swings,
-        backgroundColor: swingColors,
-        borderRadius: 2,
-        barPercentage: 1,
-        categoryPercentage: 0.9,
-      }]
-    },
+    data: { labels, datasets: [{ label: "Daily Swing", data: swings, backgroundColor: swingColors, borderRadius: 2, barPercentage: 1, categoryPercentage: 0.9 }] },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false },
-        annotation: {}
-      },
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
-        x: {
-          type: "time",
-          time: { unit: "day" },
-          ticks: { display: false },
-          grid: { display: false }
-        },
-        y: {
-          ticks: { color: "#64748b", callback: (v) => v + "%" },
-          grid: { color: "#334155" },
-          title: { display: true, text: "Daily Swing", color: "#94a3b8" },
-          suggestedMax: 5,
-        }
+        x: { type: "time", time: { unit: "day" }, ticks: { display: false }, grid: { display: false } },
+        y: { ticks: { color: "#64748b", callback: (v) => v + "%" }, grid: { color: "#334155" }, title: { display: true, text: "Daily Swing", color: "#94a3b8" }, suggestedMax: 5 }
       }
     }
   });
 }
+
+async function init() {
+  if (IS_SERVER) {
+    try {
+      const resp = await fetch("/api/cities");
+      cities = await resp.json();
+    } catch { cities = []; }
+    renderCityRows(cities);
+
+    const script = document.createElement("script");
+    script.src = "data.js";
+    script.onload = () => populateSelect();
+    script.onerror = () => populateSelect();
+    document.body.appendChild(script);
+  } else {
+    renderCityRows([]);
+    noData.style.display = "flex";
+    noData.textContent = "Start the server for full functionality: node server.js";
+    if (typeof HUMIDITY_DATA !== "undefined") populateSelect();
+  }
+}
+
+init();
 </script>
 </body>
 </html>
