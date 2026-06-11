@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weather Saver — Humidity Tracker</title>
+<title>Weather Saver — EMC Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <style>
@@ -15,87 +15,154 @@
     min-height: 100vh;
     padding: 2rem;
   }
-  h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-  .subtitle {
-    color: #94a3b8;
-    font-size: 0.875rem;
-    margin-bottom: 1.5rem;
-  }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
   .controls {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
+    display: flex; gap: 1rem; align-items: center;
+    margin-bottom: 1.5rem; flex-wrap: wrap;
   }
   select {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #e2e8f0;
-    font-size: 1rem;
-    min-width: 250px;
+    padding: 0.5rem 1rem; border-radius: 0.5rem;
+    border: 1px solid #334155; background: #1e293b;
+    color: #e2e8f0; font-size: 1rem; min-width: 250px;
   }
   .stats {
-    display: flex;
-    gap: 2rem;
-    font-size: 0.875rem;
-    color: #94a3b8;
+    display: flex; gap: 1.5rem; font-size: 0.875rem;
+    color: #94a3b8; flex-wrap: wrap;
   }
-  .stats span strong {
-    color: #e2e8f0;
-  }
+  .stats span strong { color: #e2e8f0; }
+  .stat-warning strong { color: #f87171 !important; }
   .chart-wrap {
-    background: #1e293b;
-    border-radius: 0.75rem;
-    border: 1px solid #334155;
-    padding: 1rem;
-    height: calc(100vh - 12rem);
-    min-height: 400px;
+    background: #1e293b; border-radius: 0.75rem;
+    border: 1px solid #334155; padding: 1rem;
     position: relative;
   }
+  .emc-chart { height: calc(100vh - 26rem); min-height: 280px; }
+  .swing-chart { height: 140px; margin-top: 1rem; }
   .no-data {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #64748b;
-    font-size: 1.125rem;
+    display: flex; align-items: center; justify-content: center;
+    height: 400px; color: #64748b; font-size: 1.125rem;
+  }
+  .legend {
+    display: flex; gap: 1.5rem; font-size: 0.75rem;
+    color: #94a3b8; padding-top: 0.5rem; flex-wrap: wrap;
+  }
+  .legend span::before {
+    content: ""; display: inline-block; width: 12px; height: 3px;
+    margin-right: 6px; border-radius: 1px; vertical-align: middle;
+  }
+  .leg-avg::before { background: #3b82f6; }
+  .leg-band::before { background: rgba(59,130,246,0.2); height: 8px; }
+  .info-panel {
+    margin-top: 1.5rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #94a3b8;
+  }
+  .info-panel h3 {
+    font-size: 0.9rem;
+    color: #e2e8f0;
+    margin-bottom: 0.5rem;
+  }
+  .info-panel h4 {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    margin: 1rem 0 0.35rem;
+  }
+  .info-panel h4:first-of-type { margin-top: 0.5rem; }
+  .info-panel p { margin-bottom: 0.35rem; }
+  .risk-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 1rem;
+    margin-top: 0.5rem;
+    align-items: baseline;
+  }
+  .risk-grid .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+  }
+  .info-panel code {
+    background: #334155;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    color: #e2e8f0;
   }
 </style>
 </head>
 <body>
-  <h1>Humidity Tracker</h1>
-  <p class="subtitle">Construction project environmental monitoring — daily summaries</p>
+  <h1>EMC Tracker</h1>
+  <p class="subtitle">Equilibrium Moisture Content — daily min/avg/max with swing risk</p>
   <div class="controls">
     <select id="projectSelect">
       <option value="">— Select a project —</option>
     </select>
     <div class="stats" id="stats"></div>
   </div>
-  <div class="chart-wrap">
-    <div class="no-data" id="noData">Run <code>node index.js</code> to collect data, then refresh this page.</div>
-    <canvas id="chart" style="display:none"></canvas>
+  <div class="chart-wrap" id="chartArea" style="display:none">
+    <div class="emc-chart"><canvas id="emcChart"></canvas></div>
+    <div class="swing-chart"><canvas id="swingChart"></canvas></div>
+    <div class="legend">
+      <span class="leg-avg">Daily avg EMC</span>
+      <span class="leg-band">Daily range (min–max)</span>
+      <span style="color:#64748b">■ Safe (≤2%)</span>
+      <span style="color:#fbbf24">■ Caution (2–5%)</span>
+      <span style="color:#f87171">■ High (5–10%)</span>
+      <span style="color:#dc2626">■ Extreme (&gt;10%)</span>
+    </div>
   </div>
+
+  <div class="info-panel">
+    <h3>Understanding This Data</h3>
+
+    <h4>What is EMC?</h4>
+    <p>Equilibrium Moisture Content (EMC) is the moisture percentage wood will naturally absorb or release until it balances with the surrounding air. It is calculated from two weather station readings — relative humidity and temperature — using the <strong>Hailwood-Horrobin equation</strong>, the standard formula published in the USDA Forest Products Laboratory Wood Handbook (FPL-GTR-282), Chapter 4.</p>
+
+    <h4>Why it matters for construction</h4>
+    <p>Wood expands as it absorbs moisture and contracts as it dries. A 1% change in EMC causes roughly 1% dimensional change across the grain in flat-sawn lumber. When the environment swings wildly — for example from 97% humidity at dawn to 32% by afternoon — the wood is subjected to stress it cannot immediately respond to. Over time this causes warping, checking, cupping, joint failure, and finish defects.</p>
+    <p>In a humidity-controlled environment (HVAC, dehumidifiers), EMC typically stays within 1–2% on a given day. The colored bars below the chart show how far outside that range each day actually was, proving whether or not the environment was controlled.</p>
+
+    <h4>Daily Swing Risk Levels</h4>
+    <div class="risk-grid">
+      <div><span class="dot" style="background:#64748b"></span><strong style="color:#64748b">Safe</strong> ≤ 2%</div>
+      <div>Within normal controlled-environment range. Wood movement is minimal and predictable.</div>
+      <div><span class="dot" style="background:#fbbf24"></span><strong style="color:#fbbf24">Caution</strong> 2–5%</div>
+      <div>Outside controlled range. Wood is under measurable stress. Minor dimensional changes likely.</div>
+      <div><span class="dot" style="background:#f87171"></span><strong style="color:#f87171">High</strong> 5–10%</div>
+      <div>Significant uncontrolled fluctuation. Warping, checking, and joint stress are expected.</div>
+      <div><span class="dot" style="background:#dc2626"></span><strong style="color:#dc2626">Extreme</strong> &gt; 10%</div>
+      <div>Severe environmental failure. Rapid moisture cycling will cause visible defects in wood products.</div>
+    </div>
+
+    <h4>How the numbers are calculated</h4>
+    <p>Hourly relative humidity and temperature data is sourced from <strong>Open-Meteo.com</strong> (historical weather station archive). For each hour, EMC is computed using the Hailwood-Horrobin two-hydrate model. Each day is then summarized into four values: minimum hourly EMC, maximum hourly EMC, the average across all hours, and the <code>swing</code> (max minus min) representing the total moisture stress the wood experienced that day.</p>
+
+    <h4>Validation</h4>
+    <p>Run <code>node validate.js</code> to verify the EMC formula against 25 reference points from USDA FPL Wood Handbook Table 4-2. The formula is accurate to within ±0.6% of the published table values.</p>
+  </div>
+  <div class="no-data" id="noData">Run <code>node index.js</code> to collect data, then refresh.</div>
 
 <script src="data.js"></script>
 <script>
 const select = document.getElementById("projectSelect");
 const statsEl = document.getElementById("stats");
 const noData = document.getElementById("noData");
-const canvas = document.getElementById("chart");
-let chart = null;
+const chartArea = document.getElementById("chartArea");
+let emcChart = null, swingChart = null;
 
 if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length === 0) {
   noData.style.display = "flex";
 } else {
   noData.style.display = "none";
-  canvas.style.display = "block";
+  chartArea.style.display = "block";
 
   for (const project of Object.keys(HUMIDITY_DATA)) {
     const opt = document.createElement("option");
@@ -105,7 +172,8 @@ if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length ==
   }
 
   select.addEventListener("change", () => {
-    if (chart) chart.destroy();
+    if (emcChart) emcChart.destroy();
+    if (swingChart) swingChart.destroy();
     statsEl.innerHTML = "";
     if (!select.value) return;
     render(select.value);
@@ -120,53 +188,62 @@ if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length ==
 function render(project) {
   const { city, days } = HUMIDITY_DATA[project];
   const labels = days.map(d => d.date);
+  const avgs = days.map(d => d.avg);
+  const mins = days.map(d => d.min);
+  const maxs = days.map(d => d.max);
+  const swings = days.map(d => d.swing);
 
-  const allMin = Math.min(...days.map(d => d.min));
-  const allMax = Math.max(...days.map(d => d.max));
-  const allAvg = (days.reduce((s, d) => s + d.avg, 0) / days.length).toFixed(1);
-  const maxDailySwing = Math.max(...days.map(d => d.max - d.min));
+  const overallAvg = (avgs.reduce((a, b) => a + b, 0) / avgs.length).toFixed(1);
+  const overallMin = Math.min(...mins);
+  const overallMax = Math.max(...maxs);
+  const worstSwing = Math.max(...swings);
+  const dangerDays = days.filter(d => d.swing > 2).length;
+  const rangeSpan = (overallMax - overallMin).toFixed(1);
+  const highRiskDays = days.filter(d => d.swing > 5).length;
+  const extremeDays = days.filter(d => d.swing > 10).length;
 
   statsEl.innerHTML =
     `<span>Days: <strong>${days.length}</strong></span>` +
-    `<span>Overall Min: <strong>${allMin}%</strong></span>` +
-    `<span>Overall Max: <strong>${allMax}%</strong></span>` +
-    `<span>Overall Avg: <strong>${allAvg}%</strong></span>` +
-    `<span>Worst daily swing: <strong>${maxDailySwing}%</strong></span>`;
+    `<span>EMC range: <strong>${overallMin}%–${overallMax}%</strong></span>` +
+    `<span>Avg: <strong>${overallAvg}%</strong></span>` +
+    `<span>Worst swing: <strong>${worstSwing}%</strong></span>` +
+    `<span class="${dangerDays > 0 ? 'stat-warning' : ''}">Swing &gt; 2%: <strong>${dangerDays} days</strong></span>` +
+    `<span class="${highRiskDays > 0 ? 'stat-warning' : ''}">Swing &gt; 5%: <strong>${highRiskDays} days</strong></span>` +
+    `<span class="${extremeDays > 0 ? 'stat-warning' : ''}">Swing &gt; 10%: <strong>${extremeDays} days</strong></span>`;
 
-  chart = new Chart(canvas, {
+  const pointRadius = days.length > 90 ? 0 : 2;
+
+  emcChart = new Chart(document.getElementById("emcChart"), {
     type: "line",
     data: {
       labels,
       datasets: [
         {
-          label: "Max",
-          data: days.map(d => d.max),
-          borderColor: "#f87171",
-          backgroundColor: "rgba(248,113,113,0.08)",
+          label: "Max EMC",
+          data: maxs,
+          borderColor: "transparent",
+          backgroundColor: "rgba(59,130,246,0.15)",
           fill: "+1",
-          pointRadius: days.length > 90 ? 0 : 2,
-          borderWidth: 2,
-          tension: 0.2,
+          pointRadius: 0,
+          tension: 0.3,
         },
         {
-          label: "Avg",
-          data: days.map(d => d.avg),
+          label: "Avg EMC",
+          data: avgs,
           borderColor: "#3b82f6",
-          backgroundColor: "rgba(59,130,246,0.08)",
-          fill: false,
-          pointRadius: days.length > 90 ? 0 : 2,
+          backgroundColor: "transparent",
           borderWidth: 2,
-          tension: 0.2,
+          pointRadius,
+          tension: 0.3,
         },
         {
-          label: "Min",
-          data: days.map(d => d.min),
-          borderColor: "#34d399",
-          backgroundColor: "rgba(52,211,153,0.08)",
+          label: "Min EMC",
+          data: mins,
+          borderColor: "transparent",
+          backgroundColor: "rgba(59,130,246,0.15)",
           fill: "-1",
-          pointRadius: days.length > 90 ? 0 : 2,
-          borderWidth: 2,
-          tension: 0.2,
+          pointRadius: 0,
+          tension: 0.3,
         }
       ]
     },
@@ -175,16 +252,25 @@ function render(project) {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { labels: { color: "#e2e8f0" } },
+        legend: { display: false },
         tooltip: {
           backgroundColor: "#1e293b",
           borderColor: "#334155",
           borderWidth: 1,
           titleColor: "#e2e8f0",
           bodyColor: "#94a3b8",
+          caretPadding: 20,
           callbacks: {
             title: (items) => items[0].label,
-            label: (item) => `  ${item.dataset.label}: ${item.raw}%`
+            label: () => "",
+            afterBody: (items) => {
+              const d = days[items[0].dataIndex];
+              return [
+                `Avg EMC:    ${d.avg}%`,
+                `Range:      ${d.min}% – ${d.max}%`,
+                `Daily swing: ${d.swing}%${d.swing > 2 ? "  ⚠ RISK" : ""}`
+              ];
+            }
           }
         }
       },
@@ -196,11 +282,54 @@ function render(project) {
           grid: { color: "#1e293b" }
         },
         y: {
-          min: 0,
-          max: 100,
           ticks: { color: "#64748b", callback: (v) => v + "%" },
           grid: { color: "#334155" },
-          title: { display: true, text: "Relative Humidity (%)", color: "#94a3b8" }
+          title: { display: true, text: "Equilibrium Moisture Content (%)", color: "#94a3b8" }
+        }
+      }
+    }
+  });
+
+  const swingColors = swings.map(s => {
+    if (s > 10) return "rgba(220,38,38,0.9)";       // extreme - bright red
+    if (s > 5) return "rgba(248,113,113,0.8)";      // high - light red
+    if (s > 2) return "rgba(251,191,36,0.7)";       // caution - amber
+    return "rgba(100,116,139,0.3)";                  // safe - dim
+  });
+
+  swingChart = new Chart(document.getElementById("swingChart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Daily Swing",
+        data: swings,
+        backgroundColor: swingColors,
+        borderRadius: 2,
+        barPercentage: 1,
+        categoryPercentage: 0.9,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        annotation: {}
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: { unit: "day" },
+          ticks: { display: false },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { color: "#64748b", callback: (v) => v + "%" },
+          grid: { color: "#334155" },
+          title: { display: true, text: "Daily Swing", color: "#94a3b8" },
+          suggestedMax: 5,
         }
       }
     }
