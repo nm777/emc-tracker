@@ -2,22 +2,22 @@
   {
     "project": "Wayzata Project",
     "city": "Wayzata",
-    "latitude": 44.96,
-    "longitude": -93.51,
-    "start_date": "2026-01-01"
+    "start_date": "2026-01-01",
+    "latitude": 44.97413,
+    "longitude": -93.50662
   },
   {
     "project": "Medina Project",
     "city": "Medina",
-    "latitude": 44.95,
-    "longitude": -93.58,
-    "start_date": "2026-01-01"
+    "start_date": "2026-01-01",
+    "latitude": 45.03524,
+    "longitude": -93.58246
   },
   {
     "project": "Plymouth Project",
     "city": "Plymouth",
-    "latitude": 45.01,
-    "longitude": -93.46,
-    "start_date": "2026-01-01"
+    "start_date": "2026-01-01",
+    "latitude": 45.01052,
+    "longitude": -93.45551
   }
 ]
