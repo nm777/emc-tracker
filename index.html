@@ -241,7 +241,7 @@
     <div id="cityList">
       <div class="city-row header">
         <div>Project Name</div>
-        <div>City (type to search)</div>
+        <div>Address</div>
         <div>Start Date</div>
         <div></div>
       </div>
@@ -322,17 +322,15 @@ function createCityRow(data = {}) {
   row.dataset.latitude = data.latitude || "";
   row.dataset.longitude = data.longitude || "";
 
-  const cityLabel = data.city
-    ? (data.latitude && data.longitude ? `${data.city} (${data.latitude}, ${data.longitude})` : data.city)
-    : "";
+  const coordsLabel = (data.latitude && data.longitude) ? `${data.latitude}, ${data.longitude}` : "";
 
   row.innerHTML = `
     <div><label>Project</label><input type="text" data-field="project" value="${data.project || ""}" placeholder="Project name"></div>
     <div class="city-search-wrap">
-      <label>City</label>
-      <input type="text" class="city-search" data-field="city" value="${data.city || ""}" placeholder="City, State (e.g. Medina, MN)" autocomplete="off">
+      <label>Address</label>
+      <input type="text" class="city-search" data-field="city" value="${data.city || ""}" placeholder="Address, city, or zip (e.g. 123 Main St, Hopkins, MN)" autocomplete="off">
       <div class="city-suggestions"></div>
-      <div class="loc-display">${cityLabel ? "Coords: " + data.latitude + ", " + data.longitude : ""}</div>
+      <div class="loc-display">${coordsLabel ? "Coords: " + coordsLabel : ""}</div>
     </div>
     <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
     <div><button class="btn btn-danger remove-btn">Remove</button></div>
@@ -346,45 +344,18 @@ function createCityRow(data = {}) {
   searchInput.addEventListener("input", () => {
     clearTimeout(searchTimeout);
     const raw = searchInput.value.trim();
-    if (raw.length < 2) {
+    if (raw.length < 3) {
       suggestions.classList.remove("open");
       return;
     }
     searchTimeout = setTimeout(async () => {
       try {
-        const parts = raw.split(",").map(s => s.trim());
-        const cityQuery = parts[0];
-        const stateFilter = parts[1] ? parts[1].toLowerCase() : null;
-        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQuery)}&count=50&language=en&format=json`);
-        const data = await resp.json();
+        const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(raw)}&format=json&addressdetails=1&limit=5&countrycodes=us`);
+        const results = await resp.json();
         suggestions.innerHTML = "";
-        if (!data.results) {
-          suggestions.innerHTML = '<div class="suggestion" style="color:#64748b;cursor:default">No results found. Try a different spelling or nearby city.</div>';
-          suggestions.classList.add("open");
-          return;
-        }
 
-        let results = data.results;
-
-        if (stateFilter) {
-          const STATE_MAP = {"al":"alabama","ak":"alaska","az":"arizona","ar":"arkansas","ca":"california","co":"colorado","ct":"connecticut","de":"delaware","fl":"florida","ga":"georgia","hi":"hawaii","id":"idaho","il":"illinois","in":"indiana","ia":"iowa","ks":"kansas","ky":"kentucky","la":"louisiana","me":"maine","md":"maryland","ma":"massachusetts","mi":"michigan","mn":"minnesota","ms":"mississippi","mo":"missouri","mt":"montana","ne":"nebraska","nv":"nevada","nh":"new hampshire","nj":"new jersey","nm":"new mexico","ny":"new york","nc":"north carolina","nd":"north dakota","oh":"ohio","ok":"oklahoma","or":"oregon","pa":"pennsylvania","ri":"rhode island","sc":"south carolina","sd":"south dakota","tn":"tennessee","tx":"texas","ut":"utah","vt":"vermont","va":"virginia","wa":"washington","wv":"west virginia","wi":"wisconsin","wy":"wyoming","dc":"district of columbia"};
-          const fullState = STATE_MAP[stateFilter] || stateFilter;
-          const matched = results.filter(r =>
-            r.admin1 && (r.admin1.toLowerCase() === fullState || r.admin1.toLowerCase().includes(fullState))
-          );
-          if (matched.length > 0) results = matched;
-        }
-
-        results.sort((a, b) => {
-          if (a.country_code === "US" && b.country_code !== "US") return -1;
-          if (a.country_code !== "US" && b.country_code === "US") return 1;
-          return 0;
-        });
-
-        results = results.slice(0, 5);
-
-        if (results.length === 0) {
-          suggestions.innerHTML = '<div class="suggestion" style="color:#64748b;cursor:default">No matching results. Try a different spelling or nearby city.</div>';
+        if (!results || results.length === 0) {
+          suggestions.innerHTML = '<div class="suggestion" style="color:#64748b;cursor:default">No results found. Try a different address or city name.</div>';
           suggestions.classList.add("open");
           return;
         }
@@ -392,20 +363,21 @@ function createCityRow(data = {}) {
         for (const r of results) {
           const item = document.createElement("div");
           item.className = "suggestion";
-          const region = [r.admin1, r.country].filter(Boolean).join(", ");
-          item.innerHTML = `<div>${r.name}</div><div class="detail">${region} &middot; ${r.latitude.toFixed(2)}, ${r.longitude.toFixed(2)}</div>`;
+          const shortAddr = r.display_name.split(",").slice(0, 3).join(",").trim();
+          const detailAddr = r.display_name.split(",").slice(3).join(",").trim();
+          item.innerHTML = `<div>${shortAddr}</div><div class="detail">${detailAddr} &middot; ${Number(r.lat).toFixed(4)}, ${Number(r.lon).toFixed(4)}</div>`;
           item.addEventListener("click", () => {
-            searchInput.value = r.name;
-            row.dataset.latitude = r.latitude;
-            row.dataset.longitude = r.longitude;
-            locDisplay.textContent = `Coords: ${r.latitude}, ${r.longitude}`;
+            searchInput.value = r.display_name;
+            row.dataset.latitude = r.lat;
+            row.dataset.longitude = r.lon;
+            locDisplay.textContent = `Coords: ${r.lat}, ${r.lon}`;
             suggestions.classList.remove("open");
           });
           suggestions.appendChild(item);
         }
         suggestions.classList.add("open");
       } catch { suggestions.classList.remove("open"); }
-    }, 300);
+    }, 500);
   });
 
   searchInput.addEventListener("blur", () => {

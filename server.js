@@ -56,6 +56,43 @@ function calcEMC(rh, tempC) {
   return Number(((1800 / W) * (t1 + num2 / den2)).toFixed(1));
 }
 
+function csvVal(v) {
+  if (typeof v === "string" && (v.includes(",") || v.includes('"'))) {
+    return '"' + v.replace(/"/g, '""') + '"';
+  }
+  return v;
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        result.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 function drain(req) {
   return new Promise((resolve) => {
     req.resume();
@@ -120,7 +157,7 @@ const server = createServer((req, res) => {
         const lines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
         const lastByProject = {};
         for (const line of lines) {
-          const parts = line.split(",");
+          const parts = parseCsvLine(line);
           const project = parts[1];
           const date = parts[0];
           if (!lastByProject[project] || date > lastByProject[project]) lastByProject[project] = date;
@@ -179,7 +216,7 @@ const server = createServer((req, res) => {
                 const emc = stat(vals.emc);
                 const rh = stat(vals.rh);
                 const tmp = stat(vals.temp);
-                return `${date},${project},${city},${emc.min},${emc.max},${emc.avg},${Number((emc.max - emc.min).toFixed(1))},${rh.min},${rh.max},${rh.avg},${Number(tmp.min.toFixed(1))},${Number(tmp.max.toFixed(1))},${tmp.avg}`;
+                return `${date},${csvVal(project)},${csvVal(city)},${emc.min},${emc.max},${emc.avg},${Number((emc.max - emc.min).toFixed(1))},${rh.min},${rh.max},${rh.avg},${Number(tmp.min.toFixed(1))},${Number(tmp.max.toFixed(1))},${tmp.avg}`;
               });
 
             if (rows.length > 0) {
@@ -195,7 +232,8 @@ const server = createServer((req, res) => {
         const allLines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
         const byProject = {};
         for (const line of allLines) {
-          const [date, proj, c, min, max, avg, swing] = line.split(",");
+          const parts = parseCsvLine(line);
+          const [date, proj, c, min, max, avg, swing] = parts;
           if (!byProject[proj]) byProject[proj] = { city: c, days: [] };
           byProject[proj].days.push({ date, min: +min, max: +max, avg: +avg, swing: +swing });
         }

@@ -4,6 +4,43 @@ const CSV_FILE = "emc_log.csv";
 
 const CSV_HEADER = "date,project,city,min_emc,max_emc,avg_emc,swing,min_rh,max_rh,avg_rh,min_temp,max_temp,avg_temp\n";
 
+function csvVal(v) {
+  if (typeof v === "string" && (v.includes(",") || v.includes('"'))) {
+    return '"' + v.replace(/"/g, '""') + '"';
+  }
+  return v;
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        result.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 function ensureCsvHeader() {
   if (!existsSync(CSV_FILE)) {
     appendFileSync(CSV_FILE, CSV_HEADER);
@@ -118,7 +155,7 @@ async function main() {
     try {
       const hourly = await fetchHourly(latitude, longitude, startDate, today);
       const daily = aggregateToDaily(hourly);
-      const rows = daily.map(d => `${d.date},${project},${city},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
+      const rows = daily.map(d => `${d.date},${csvVal(project)},${csvVal(city)},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
 
       if (rows.length > 0) {
         appendFileSync(CSV_FILE, rows.join("\n") + "\n");
@@ -141,7 +178,8 @@ function writeDataJs() {
   const lines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
   const byProject = {};
   for (const line of lines) {
-    const [date, project, city, min, max, avg, swing] = line.split(",");
+    const parts = parseCsvLine(line);
+    const [date, project, city, min, max, avg, swing] = parts;
     if (!byProject[project]) byProject[project] = { city, days: [] };
     byProject[project].days.push({ date, min: +min, max: +max, avg: +avg, swing: +swing });
   }
