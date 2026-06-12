@@ -1,4 +1,4 @@
 node_modules/
-humidity_log.csv
+emc_log.csv
 data.js
 cities.json

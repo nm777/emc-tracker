@@ -1,10 +1,12 @@
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "fs";
 
-const CSV_FILE = "humidity_log.csv";
+const CSV_FILE = "emc_log.csv";
+
+const CSV_HEADER = "date,project,city,min_emc,max_emc,avg_emc,swing,min_rh,max_rh,avg_rh,min_temp,max_temp,avg_temp\n";
 
 function ensureCsvHeader() {
   if (!existsSync(CSV_FILE)) {
-    appendFileSync(CSV_FILE, "date,project,city,min_emc,max_emc,avg_emc,swing\n");
+    appendFileSync(CSV_FILE, CSV_HEADER);
   }
 }
 
@@ -58,16 +60,30 @@ function aggregateToDaily(hourly) {
     const temp = hourly.temperature_2m[i];
     if (rh === null || temp === null) continue;
     const date = hourly.time[i].slice(0, 10);
-    if (!byDate[date]) byDate[date] = [];
-    byDate[date].push(calcEMC(rh, temp));
+    if (!byDate[date]) byDate[date] = { emc: [], rh: [], temp: [] };
+    byDate[date].emc.push(calcEMC(rh, temp));
+    byDate[date].rh.push(rh);
+    byDate[date].temp.push(temp);
   }
   return Object.entries(byDate)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, values]) => {
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const avg = Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1));
-      return { date, min, max, avg, swing: Number((max - min).toFixed(1)) };
+    .map(([date, vals]) => {
+      const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+      const stat = (arr) => ({
+        min: Math.min(...arr),
+        max: Math.max(...arr),
+        avg: Number((sum(arr) / arr.length).toFixed(1)),
+      });
+      const emc = stat(vals.emc);
+      const rh = stat(vals.rh);
+      const temp = stat(vals.temp);
+      return {
+        date,
+        min_emc: emc.min, max_emc: emc.max, avg_emc: emc.avg,
+        swing: Number((emc.max - emc.min).toFixed(1)),
+        min_rh: rh.min, max_rh: rh.max, avg_rh: rh.avg,
+        min_temp: Number(temp.min.toFixed(1)), max_temp: Number(temp.max.toFixed(1)), avg_temp: temp.avg,
+      };
     });
 }
 
@@ -102,12 +118,12 @@ async function main() {
     try {
       const hourly = await fetchHourly(latitude, longitude, startDate, today);
       const daily = aggregateToDaily(hourly);
-      const rows = daily.map(d => `${d.date},${project},${city},${d.min},${d.max},${d.avg},${d.swing}`);
+      const rows = daily.map(d => `${d.date},${project},${city},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
 
       if (rows.length > 0) {
         appendFileSync(CSV_FILE, rows.join("\n") + "\n");
         totalRows += rows.length;
-        console.log(`  ${rows.length} daily EMC summaries saved`);
+        console.log(`  ${rows.length} daily summaries saved`);
       } else {
         console.log(`  no new data available`);
       }
@@ -132,7 +148,7 @@ function writeDataJs() {
   writeFileSync("data.js", `window.HUMIDITY_DATA = ${JSON.stringify(byProject)};`);
 }
 
-export { calcEMC };
+export { calcEMC, aggregateToDaily, CSV_FILE, CSV_HEADER };
 
 if (process.argv[1] && (process.argv[1].endsWith("index.js") || process.argv[1].endsWith("index"))) {
   main();

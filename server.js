@@ -111,10 +111,10 @@ const server = createServer((req, res) => {
         await drain(req);
 
         const cities = JSON.parse(readFileSync(join(__dirname, "cities.json"), "utf-8"));
-        const CSV_FILE = join(__dirname, "humidity_log.csv");
+        const CSV_FILE = join(__dirname, "emc_log.csv");
 
         if (!existsSync(CSV_FILE)) {
-          appendFileSync(CSV_FILE, "date,project,city,min_emc,max_emc,avg_emc,swing\n");
+          appendFileSync(CSV_FILE, "date,project,city,min_emc,max_emc,avg_emc,swing,min_rh,max_rh,avg_rh,min_temp,max_temp,avg_temp\n");
         }
 
         const lines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
@@ -160,17 +160,26 @@ const server = createServer((req, res) => {
               const temp = hourly.temperature_2m[i];
               if (rh === null || temp === null) continue;
               const date = hourly.time[i].slice(0, 10);
-              if (!byDate[date]) byDate[date] = [];
-              byDate[date].push(calcEMC(rh, temp));
+              if (!byDate[date]) byDate[date] = { emc: [], rh: [], temp: [] };
+              byDate[date].emc.push(calcEMC(rh, temp));
+              byDate[date].rh.push(rh);
+              byDate[date].temp.push(temp);
             }
+
+            const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+            const stat = (arr) => ({
+              min: Math.min(...arr),
+              max: Math.max(...arr),
+              avg: Number((sum(arr) / arr.length).toFixed(1)),
+            });
 
             const rows = Object.entries(byDate)
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([date, vals]) => {
-                const min = Math.min(...vals);
-                const max = Math.max(...vals);
-                const avg = Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1));
-                return `${date},${project},${city},${min},${max},${avg},${Number((max - min).toFixed(1))}`;
+                const emc = stat(vals.emc);
+                const rh = stat(vals.rh);
+                const tmp = stat(vals.temp);
+                return `${date},${project},${city},${emc.min},${emc.max},${emc.avg},${Number((emc.max - emc.min).toFixed(1))},${rh.min},${rh.max},${rh.avg},${Number(tmp.min.toFixed(1))},${Number(tmp.max.toFixed(1))},${tmp.avg}`;
               });
 
             if (rows.length > 0) {
