@@ -1,7 +1,7 @@
 {
-  "name": "weather-saver",
+  "name": "emc-tracker",
   "version": "1.0.0",
-  "description": "Fetches and logs humidity data for construction project cities",
+  "description": "Tracks Equilibrium Moisture Content at construction sites using the Hailwood-Horrobin equation to document environmental conditions affecting wood movement",
   "type": "module",
   "main": "index.js",
   "scripts": {

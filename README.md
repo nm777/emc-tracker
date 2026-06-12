@@ -61,7 +61,7 @@ You should see a version number like `v22.x.x`.
 2. Navigate to the app folder. For example, if you unzipped it to your Desktop:
 
 ```
-cd ~/Desktop/weather-saver
+cd ~/Desktop/emc-tracker
 ```
 
 3. Start the app:
@@ -78,7 +78,7 @@ npm start
 2. Navigate to the app folder. For example, if you unzipped it to your Desktop:
 
 ```
-cd %USERPROFILE%\Desktop\weather-saver
+cd %USERPROFILE%\Desktop\emc-tracker
 ```
 
 3. Start the app:
@@ -127,7 +127,7 @@ If you want data to collect automatically every hour without remembering to clic
 4. Type this line (replace the path with where you saved the app):
 
 ```
-0 * * * * cd /Users/yourname/Desktop/weather-saver && node index.js
+0 * * * * cd /Users/yourname/Desktop/emc-tracker && node index.js
 ```
 
 5. Press the Escape key
