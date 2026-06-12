@@ -466,7 +466,8 @@ function populateSelect() {
   for (const { project, city } of cities) {
     const opt = document.createElement("option");
     opt.value = project;
-    opt.textContent = `${project} — ${city}`;
+    const shortCity = city.split(",").slice(0, 2).join(",").trim();
+    opt.textContent = `${project} — ${shortCity}`;
     if (hasData && HUMIDITY_DATA[project]) {
       opt.textContent += ` (${HUMIDITY_DATA[project].days.length} days)`;
     }
