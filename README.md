@@ -146,6 +146,29 @@ If you want data to collect automatically every hour without remembering to clic
 
 To stop automatic collection later, run `crontab -e` again and delete that line.
 
+#### Setting Up Automatic Collection (Windows)
+
+1. Press the Windows key, type **Task Scheduler**, and open it
+2. In the right sidebar, click **Create Task...** (not "Create Basic Task")
+3. On the **General** tab:
+   - Name it `EMC Tracker Data Collection`
+   - Select **Run whether user is logged on or not**
+4. On the **Triggers** tab:
+   - Click **New...**
+   - Set **Begin the task** to "On a schedule"
+   - Under Settings, select **Daily**, then check **Repeat task every: 1 hour** and set **for a duration of: Indefinitely**
+   - Click OK
+5. On the **Actions** tab:
+   - Click **New...**
+   - Set **Action** to "Start a program"
+   - Set **Program/script** to `node`
+   - Set **Add arguments** to `index.js`
+   - Set **Start in** to the folder where you saved the app, e.g. `C:\Users\yourname\Desktop\emc-tracker`
+   - Click OK
+6. Click OK to save the task
+
+To stop automatic collection later, open Task Scheduler, find the task, and click **Disable** or **Delete**.
+
 ## What is EMC?
 
 Equilibrium Moisture Content is the moisture percentage wood naturally settles to based on air temperature and humidity. A 1% EMC change causes roughly 1% dimensional change across the grain. When EMC swings wildly in a single day, wood is under stress it cannot respond to fast enough — causing warping, checking, cupping, and finish defects.
