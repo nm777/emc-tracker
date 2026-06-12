@@ -130,7 +130,7 @@ Click **Collect Data** in the app periodically to fetch any new data since the l
 
 #### Setting Up Automatic Collection (Mac)
 
-If you want data to collect automatically every hour without remembering to click the button:
+If you want data to collect automatically every day without remembering to click the button:
 
 1. Open Terminal
 2. Type `crontab -e` and press Enter
@@ -138,7 +138,7 @@ If you want data to collect automatically every hour without remembering to clic
 4. Type this line (replace the path with where you saved the app):
 
 ```
-0 * * * * cd /Users/yourname/Desktop/emc-tracker && node index.js
+0 6 * * * cd /Users/yourname/Desktop/emc-tracker && node index.js
 ```
 
 5. Press the Escape key
@@ -156,7 +156,8 @@ To stop automatic collection later, run `crontab -e` again and delete that line.
 4. On the **Triggers** tab:
    - Click **New...**
    - Set **Begin the task** to "On a schedule"
-   - Under Settings, select **Daily**, then check **Repeat task every: 1 hour** and set **for a duration of: Indefinitely**
+   - Under Settings, select **Daily**, and set a time (e.g. 6:00 AM)
+   - Uncheck "Repeat task every"
    - Click OK
 5. On the **Actions** tab:
    - Click **New...**
