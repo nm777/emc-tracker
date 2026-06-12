@@ -453,6 +453,7 @@ saveConfigBtn.addEventListener("click", async () => {
   cities = data;
   saveStatus.style.display = "inline";
   setTimeout(() => saveStatus.style.display = "none", 2000);
+  populateSelect();
 });
 
 collectBtn.addEventListener("click", async () => {
@@ -465,7 +466,7 @@ collectBtn.addEventListener("click", async () => {
   collectLog.textContent = "Collecting data...\n";
   collectLog.classList.add("open");
   try {
-    const resp = await fetch("/api/collect", { method: "POST" });
+    const resp = await fetch("/api/collect", { method: "POST", headers: { "Content-Type": "text/plain" }, body: "" });
     const text = await resp.text();
     collectLog.textContent = text + "\n\nReloading chart data...";
     const script = document.createElement("script");
@@ -488,21 +489,24 @@ function populateSelect() {
   if (emcChart) emcChart.destroy();
   if (swingChart) swingChart.destroy();
 
-  if (typeof HUMIDITY_DATA === "undefined" || Object.keys(HUMIDITY_DATA).length === 0) {
-    noData.style.display = "flex";
-    noData.textContent = "No data yet. Add projects above and click Collect Data.";
-    chartArea.style.display = "none";
-    return;
-  }
+  const hasData = typeof HUMIDITY_DATA !== "undefined" && Object.keys(HUMIDITY_DATA).length > 0;
 
-  noData.style.display = "none";
-  chartArea.style.display = "block";
-
-  for (const project of Object.keys(HUMIDITY_DATA)) {
+  for (const { project, city } of cities) {
     const opt = document.createElement("option");
     opt.value = project;
-    opt.textContent = `${project} — ${HUMIDITY_DATA[project].city}`;
+    opt.textContent = `${project} — ${city}`;
+    if (hasData && HUMIDITY_DATA[project]) {
+      opt.textContent += ` (${HUMIDITY_DATA[project].days.length} days)`;
+    }
     select.appendChild(opt);
+  }
+
+  if (!hasData) {
+    noData.style.display = "flex";
+    noData.textContent = "No data yet. Click Collect Data to fetch historical EMC values.";
+    chartArea.style.display = "none";
+  } else {
+    noData.style.display = "none";
   }
 }
 
@@ -515,6 +519,14 @@ select.addEventListener("change", () => {
 });
 
 function render(project) {
+  if (!HUMIDITY_DATA || !HUMIDITY_DATA[project]) {
+    chartArea.style.display = "none";
+    noData.style.display = "flex";
+    noData.textContent = "No data yet for this project. Click Collect Data to fetch historical EMC values.";
+    return;
+  }
+  chartArea.style.display = "block";
+  noData.style.display = "none";
   const { city, days } = HUMIDITY_DATA[project];
   const labels = days.map(d => d.date);
   const avgs = days.map(d => d.avg);

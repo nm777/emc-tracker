@@ -1,23 +1,9 @@
 [
   {
-    "project": "Wayzata Project",
-    "city": "Wayzata",
-    "start_date": "2026-01-01",
-    "latitude": 44.97413,
-    "longitude": -93.50662
-  },
-  {
-    "project": "Medina Project",
-    "city": "Medina",
-    "start_date": "2026-01-01",
-    "latitude": 45.03524,
-    "longitude": -93.58246
-  },
-  {
-    "project": "Plymouth Project",
-    "city": "Plymouth",
-    "start_date": "2026-01-01",
-    "latitude": 45.01052,
-    "longitude": -93.45551
+    "project": "Smith House",
+    "city": "Hopkins",
+    "start_date": "2026-04-01",
+    "latitude": 44.92496,
+    "longitude": -93.46273
   }
 ]
