@@ -68,39 +68,22 @@ You should see a version number like `v22.x.x`.
 
 ### Mac
 
+Double-click **`start.sh`** in the app folder. It will check that Node.js is installed, start the server, and open your browser automatically.
+
+If you prefer the Terminal:
+
 1. Open **Terminal** (press Command+Space, type "Terminal", press Enter)
-2. Navigate to the app folder. For example, if you unzipped it to your Desktop:
+2. Navigate to the app folder and run the start script:
 
 ```
-cd ~/Desktop/emc-tracker
+cd ~/Desktop/emc-tracker && ./start.sh
 ```
-
-3. Start the app:
-
-```
-npm start
-```
-
-4. Open your browser and go to [http://localhost:3000](http://localhost:3000)
 
 ### Windows
 
-1. Open **Command Prompt** (press the Windows key, type "cmd", press Enter)
-2. Navigate to the app folder. For example, if you unzipped it to your Desktop:
+Double-click **`start.bat`** in the app folder. It will check that Node.js is installed, start the server, and open your browser automatically.
 
-```
-cd %USERPROFILE%\Desktop\emc-tracker
-```
-
-3. Start the app:
-
-```
-npm start
-```
-
-4. Open your browser and go to [http://localhost:3000](http://localhost:3000)
-
-Leave the Terminal / Command Prompt window open while you use the app. Closing it will stop the server. To stop the server, press **Ctrl+C** in the Terminal window.
+Leave the Terminal or Command Prompt window open while you use the app. Closing it will stop the server. To stop the server, press **Ctrl+C**.
 
 ## How It Works
 
@@ -190,6 +173,8 @@ This compares 25 test points against Table 4-2 of the USDA Wood Handbook. The fo
 
 | File | Purpose |
 |------|---------|
+| `start.sh` | Mac start script — double-click to launch |
+| `start.bat` | Windows start script — double-click to launch |
 | `server.js` | Web server with API for config and data collection |
 | `index.js` | Standalone data collection script (can run without server) |
 | `index.html` | Dashboard UI with charts and project management |
