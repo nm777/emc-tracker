@@ -132,4 +132,8 @@ function writeDataJs() {
   writeFileSync("data.js", `window.HUMIDITY_DATA = ${JSON.stringify(byProject)};`);
 }
 
-main();
+export { calcEMC };
+
+if (process.argv[1] && (process.argv[1].endsWith("index.js") || process.argv[1].endsWith("index"))) {
+  main();
+}
