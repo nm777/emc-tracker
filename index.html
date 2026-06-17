@@ -584,7 +584,8 @@ function getCityInputs() {
 }
 
 addCityBtn.addEventListener("click", () => {
-  cityList.appendChild(createCityRow());
+  const header = cityList.querySelector(".city-row.header");
+  cityList.insertBefore(createCityRow(), header.nextSibling);
 });
 
 saveConfigBtn.addEventListener("click", async () => {

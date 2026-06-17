@@ -7,6 +7,11 @@ The version number follows [semantic versioning](https://semver.org/):
 - **Minor** — new features (backward compatible)
 - **Patch** — bug fixes and small improvements (backward compatible)
 
+## [1.3.1] — 2026-06-17
+
+### Changed
+- New projects are now added to the top of the list instead of the bottom
+
 ## [1.3.0] — 2026-06-17
 
 ### Added
