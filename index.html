@@ -472,6 +472,22 @@ addCityBtn.addEventListener("click", () => {
 });
 
 saveConfigBtn.addEventListener("click", async () => {
+  const rows = cityList.querySelectorAll(".city-row:not(.header)");
+  let hasIncomplete = false;
+  rows.forEach(row => {
+    const project = row.querySelector('input[data-field="project"]').value.trim();
+    const city = row.querySelector('input[data-field="city"]').value.trim();
+    const lat = parseFloat(row.dataset.latitude);
+    if (project && (!city || !lat)) hasIncomplete = true;
+  });
+  if (hasIncomplete) {
+    saveStatus.textContent = "Some projects need an address — select from the suggestions";
+    saveStatus.style.color = "#f87171";
+    saveStatus.style.display = "inline";
+    setTimeout(() => saveStatus.style.display = "none", 4000);
+    return;
+  }
+
   const data = getCityInputs();
   const current = select.value;
   if (IS_SERVER) {
@@ -481,13 +497,15 @@ saveConfigBtn.addEventListener("click", async () => {
       body: JSON.stringify(data),
     });
     cities = data;
+    saveStatus.textContent = "Saved";
+    saveStatus.style.color = "#34d399";
     saveStatus.style.display = "inline";
     setTimeout(() => saveStatus.style.display = "none", 2000);
     const script = document.createElement("script");
     script.src = "data.js?" + Date.now();
     script.onload = () => {
       populateSelect();
-      if (current) {
+      if (current && typeof HUMIDITY_DATA !== "undefined" && HUMIDITY_DATA[current]) {
         select.value = current;
         render(current);
       }
@@ -495,6 +513,8 @@ saveConfigBtn.addEventListener("click", async () => {
     document.body.appendChild(script);
   } else {
     cities = data;
+    saveStatus.textContent = "Saved";
+    saveStatus.style.color = "#34d399";
     saveStatus.style.display = "inline";
     setTimeout(() => saveStatus.style.display = "none", 2000);
     populateSelect();
