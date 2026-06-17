@@ -136,7 +136,7 @@
   }
   .city-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 140px 140px auto;
+    grid-template-columns: 0.8fr 1.2fr 170px 170px 40px;
     gap: 0.5rem;
     align-items: start;
     padding: 0.5rem 0;
@@ -151,7 +151,8 @@
     border-bottom: 1px solid #334155;
     align-items: center;
   }
-  .city-row.header > div:last-child { visibility: hidden; }
+  .city-row.header > div { padding-left: calc(1rem + 1px); }
+  .city-row.header > div:last-child { padding-left: 0; }
   .city-row label { display: none; }
   .loc-display {
     font-size: 0.7rem;
@@ -211,6 +212,25 @@
   }
   .btn-primary:hover { background: #2563eb; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 0.5rem;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #f87171;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .remove-btn:hover {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: #f87171;
+  }
+  .remove-btn svg { width: 16px; height: 16px; }
   .config-actions {
     display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center;
   }
@@ -392,7 +412,7 @@ function createCityRow(data = {}) {
     </div>
     <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
     <div><label>End</label><input type="date" data-field="end_date" value="${data.end_date || ""}"></div>
-    <div><button class="btn btn-danger remove-btn">Remove</button></div>
+    <div><button class="remove-btn" title="Remove project"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>
   `;
 
   const searchInput = row.querySelector(".city-search");

@@ -7,6 +7,16 @@ The version number follows [semantic versioning](https://semver.org/):
 - **Minor** — new features (backward compatible)
 - **Patch** — bug fixes and small improvements (backward compatible)
 
+## [1.1.2] — 2026-06-17
+
+### Fixed
+- Date column headers in the config panel now align with the input fields
+- Date fields are wider to prevent truncation
+
+### Changed
+- Remove button replaced with a red trash can icon
+- Project name column slightly narrower to give more room to date fields
+
 ## [1.1.1] — 2026-06-17
 
 ### Fixed
