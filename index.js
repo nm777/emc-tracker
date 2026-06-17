@@ -47,32 +47,26 @@ function ensureCsvHeader() {
   }
 }
 
-function getLastDates() {
+function getDateBounds() {
   if (!existsSync(CSV_FILE)) return {};
   const lines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
-  const lastByProject = {};
+  const bounds = {};
   for (const line of lines) {
     const parts = line.split(",");
     const project = parts[1];
     const date = parts[0];
-    if (!lastByProject[project] || date > lastByProject[project]) {
-      lastByProject[project] = date;
+    if (!bounds[project]) {
+      bounds[project] = { first: date, last: date };
+    } else {
+      if (date < bounds[project].first) bounds[project].first = date;
+      if (date > bounds[project].last) bounds[project].last = date;
     }
   }
-  return lastByProject;
+  return bounds;
 }
 
 function toDateStr(date) {
   return date.toISOString().slice(0, 10);
-}
-
-function getFetchStart(lastDate, cityStartDate) {
-  if (lastDate) {
-    const d = new Date(lastDate);
-    d.setDate(d.getDate() + 1);
-    return toDateStr(d);
-  }
-  return cityStartDate;
 }
 
 function calcEMC(rh, tempC) {
@@ -134,39 +128,53 @@ async function fetchHourly(latitude, longitude, startDate, endDate) {
 async function main() {
   const cities = JSON.parse(readFileSync("cities.json", "utf-8"));
   ensureCsvHeader();
-  const lastByProject = getLastDates();
+  const bounds = getDateBounds();
   const today = toDateStr(new Date());
   let totalRows = 0;
 
   for (const { project, city, latitude, longitude, start_date, end_date } of cities) {
-    const lastDate = lastByProject[project];
-    const startDate = getFetchStart(lastDate, start_date);
+    const b = bounds[project];
     const endDate = end_date && end_date < today ? end_date : today;
 
-    if (startDate > endDate) {
+    const gaps = [];
+    if (b) {
+      if (start_date && start_date < b.first) {
+        const d = new Date(b.first);
+        d.setDate(d.getDate() - 1);
+        gaps.push([start_date, toDateStr(d)]);
+      }
+      const d = new Date(b.last);
+      d.setDate(d.getDate() + 1);
+      const fwdStart = toDateStr(d);
+      if (fwdStart <= endDate) {
+        gaps.push([fwdStart, endDate]);
+      }
+    } else if (start_date && start_date <= endDate) {
+      gaps.push([start_date, endDate]);
+    }
+
+    if (gaps.length === 0) {
       console.log(`${city} (${project}): up to date, skipping`);
       continue;
     }
 
-    const label = lastDate
-      ? `gap-fill from ${startDate}`
-      : `initial fetch from ${start_date}`;
-    console.log(`${city} (${project}): ${label}...`);
+    for (const [gapStart, gapEnd] of gaps) {
+      console.log(`${city} (${project}): fetching ${gapStart} to ${gapEnd}...`);
+      try {
+        const hourly = await fetchHourly(latitude, longitude, gapStart, gapEnd);
+        const daily = aggregateToDaily(hourly);
+        const rows = daily.map(d => `${d.date},${csvVal(project)},${csvVal(city)},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
 
-    try {
-      const hourly = await fetchHourly(latitude, longitude, startDate, endDate);
-      const daily = aggregateToDaily(hourly);
-      const rows = daily.map(d => `${d.date},${csvVal(project)},${csvVal(city)},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
-
-      if (rows.length > 0) {
-        appendFileSync(CSV_FILE, rows.join("\n") + "\n");
-        totalRows += rows.length;
-        console.log(`  ${rows.length} daily summaries saved`);
-      } else {
-        console.log(`  no new data available`);
+        if (rows.length > 0) {
+          appendFileSync(CSV_FILE, rows.join("\n") + "\n");
+          totalRows += rows.length;
+          console.log(`  ${rows.length} daily summaries saved`);
+        } else {
+          console.log(`  no new data available`);
+        }
+      } catch (err) {
+        console.error(`  failed: ${err.message}`);
       }
-    } catch (err) {
-      console.error(`  failed: ${err.message}`);
     }
   }
 
@@ -176,13 +184,24 @@ async function main() {
 
 function writeDataJs() {
   if (!existsSync(CSV_FILE)) return;
+  const cities = JSON.parse(readFileSync("cities.json", "utf-8"));
+  const dateRange = {};
+  for (const c of cities) {
+    dateRange[c.project] = { start: c.start_date, end: c.end_date };
+  }
   const lines = readFileSync(CSV_FILE, "utf-8").trim().split("\n").slice(1);
   const byProject = {};
   for (const line of lines) {
     const parts = parseCsvLine(line);
     const [date, project, city, min, max, avg, swing] = parts;
+    const range = dateRange[project];
+    if (range && range.start && date < range.start) continue;
+    if (range && range.end && date > range.end) continue;
     if (!byProject[project]) byProject[project] = { city, days: [] };
     byProject[project].days.push({ date, min: +min, max: +max, avg: +avg, swing: +swing });
+  }
+  for (const project in byProject) {
+    byProject[project].days.sort((a, b) => a.date.localeCompare(b.date));
   }
   writeFileSync("data.js", `window.HUMIDITY_DATA = ${JSON.stringify(byProject)};`);
 }

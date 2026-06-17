@@ -473,17 +473,32 @@ addCityBtn.addEventListener("click", () => {
 
 saveConfigBtn.addEventListener("click", async () => {
   const data = getCityInputs();
+  const current = select.value;
   if (IS_SERVER) {
     await fetch("/api/cities", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    cities = data;
+    saveStatus.style.display = "inline";
+    setTimeout(() => saveStatus.style.display = "none", 2000);
+    const script = document.createElement("script");
+    script.src = "data.js?" + Date.now();
+    script.onload = () => {
+      populateSelect();
+      if (current) {
+        select.value = current;
+        render(current);
+      }
+    };
+    document.body.appendChild(script);
+  } else {
+    cities = data;
+    saveStatus.style.display = "inline";
+    setTimeout(() => saveStatus.style.display = "none", 2000);
+    populateSelect();
   }
-  cities = data;
-  saveStatus.style.display = "inline";
-  setTimeout(() => saveStatus.style.display = "none", 2000);
-  populateSelect();
 });
 
 collectBtn.addEventListener("click", async () => {
