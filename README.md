@@ -64,6 +64,22 @@ You should see a version number like `v22.x.x`.
 1. Unzip it
 2. Remember where you saved it
 
+## Upgrading
+
+When a new version is released, you can upgrade without losing your projects or collected data.
+
+1. If the app is running, stop the server (press **Ctrl+C** in the Terminal or Command Prompt window)
+2. Download the new version from GitHub (same steps as [Downloading from GitHub](#downloading-from-github))
+3. From the new download, copy these files into your existing app folder, replacing the old ones:
+   - `server.js`
+   - `index.js`
+   - `index.html`
+   - `validate.js`
+   - `start.sh`
+   - `start.bat`
+4. **Do not** replace `cities.json`, `emc_log.csv`, or `data.js` — these contain your projects and data
+5. Start the app again as usual
+
 ## Quick Start
 
 ### Mac
