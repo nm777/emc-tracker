@@ -138,11 +138,12 @@ async function main() {
   const today = toDateStr(new Date());
   let totalRows = 0;
 
-  for (const { project, city, latitude, longitude, start_date } of cities) {
+  for (const { project, city, latitude, longitude, start_date, end_date } of cities) {
     const lastDate = lastByProject[project];
     const startDate = getFetchStart(lastDate, start_date);
+    const endDate = end_date && end_date < today ? end_date : today;
 
-    if (startDate > today) {
+    if (startDate > endDate) {
       console.log(`${city} (${project}): up to date, skipping`);
       continue;
     }
@@ -153,7 +154,7 @@ async function main() {
     console.log(`${city} (${project}): ${label}...`);
 
     try {
-      const hourly = await fetchHourly(latitude, longitude, startDate, today);
+      const hourly = await fetchHourly(latitude, longitude, startDate, endDate);
       const daily = aggregateToDaily(hourly);
       const rows = daily.map(d => `${d.date},${csvVal(project)},${csvVal(city)},${d.min_emc},${d.max_emc},${d.avg_emc},${d.swing},${d.min_rh},${d.max_rh},${d.avg_rh},${d.min_temp},${d.max_temp},${d.avg_temp}`);
 

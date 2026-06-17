@@ -130,7 +130,7 @@
   }
   .city-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 140px auto;
+    grid-template-columns: 1fr 1fr 140px 140px auto;
     gap: 0.5rem;
     align-items: start;
     padding: 0.5rem 0;
@@ -243,6 +243,7 @@
         <div>Project Name</div>
         <div>Address</div>
         <div>Start Date</div>
+        <div>End Date</div>
         <div></div>
       </div>
     </div>
@@ -333,6 +334,7 @@ function createCityRow(data = {}) {
       <div class="loc-display">${coordsLabel ? "Coords: " + coordsLabel : ""}</div>
     </div>
     <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
+    <div><label>End</label><input type="date" data-field="end_date" value="${data.end_date || ""}"></div>
     <div><button class="btn btn-danger remove-btn">Remove</button></div>
   `;
 

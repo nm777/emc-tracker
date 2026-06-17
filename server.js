@@ -167,7 +167,7 @@ const server = createServer((req, res) => {
         let totalRows = 0;
         const logs = [];
 
-        for (const { project, city, latitude, longitude, start_date } of cities) {
+        for (const { project, city, latitude, longitude, start_date, end_date } of cities) {
           const lastDate = lastByProject[project];
           let startDate;
           if (lastDate) {
@@ -177,8 +177,9 @@ const server = createServer((req, res) => {
           } else {
             startDate = start_date;
           }
+          const endDate = end_date && end_date < today ? end_date : today;
 
-          if (startDate > today) {
+          if (startDate > endDate) {
             logs.push(`${city} (${project}): up to date, skipping`);
             continue;
           }
@@ -186,7 +187,7 @@ const server = createServer((req, res) => {
           logs.push(`${city} (${project}): ${lastDate ? "gap-fill" : "initial"} from ${startDate}...`);
 
           try {
-            const api = `https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${today}&hourly=relative_humidity_2m,temperature_2m&timezone=auto`;
+            const api = `https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}&hourly=relative_humidity_2m,temperature_2m&timezone=auto`;
             const resp = await fetch(api);
             if (!resp.ok) throw new Error(`API error: ${resp.status}`);
             const hourly = (await resp.json()).hourly;
