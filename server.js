@@ -156,9 +156,38 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/api/cities") {
     readBody(req).then((body) => {
       try {
-        const data = JSON.parse(body);
-        writeFileSync(join(__dirname, "cities.json"), JSON.stringify(data, null, 2) + "\n");
-        regenerateDataJs(data);
+        const newData = JSON.parse(body);
+
+        let oldCities = [];
+        try {
+          oldCities = JSON.parse(readFileSync(join(__dirname, "cities.json"), "utf-8"));
+        } catch {}
+
+        const oldMap = {};
+        for (const c of oldCities) {
+          oldMap[c.project] = { lat: c.latitude, lon: c.longitude };
+        }
+        const newNames = new Set(newData.map(c => c.project));
+
+        const purge = new Set();
+        for (const c of oldCities) {
+          if (!newNames.has(c.project)) purge.add(c.project);
+        }
+        for (const c of newData) {
+          const old = oldMap[c.project];
+          if (old && (old.lat !== c.latitude || old.lon !== c.longitude)) purge.add(c.project);
+        }
+
+        const csvPath = join(__dirname, "emc_log.csv");
+        if (purge.size > 0 && existsSync(csvPath)) {
+          const allLines = readFileSync(csvPath, "utf-8").trim().split("\n");
+          const header = allLines[0];
+          const kept = allLines.slice(1).filter(line => !purge.has(parseCsvLine(line)[1]));
+          writeFileSync(csvPath, kept.length > 0 ? header + "\n" + kept.join("\n") + "\n" : header + "\n");
+        }
+
+        writeFileSync(join(__dirname, "cities.json"), JSON.stringify(newData, null, 2) + "\n");
+        regenerateDataJs(newData);
         json(res, { ok: true });
       } catch (err) {
         json(res, { error: err.message }, 500);
