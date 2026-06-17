@@ -136,7 +136,7 @@
   }
   .city-row {
     display: grid;
-    grid-template-columns: 24px 0.8fr 1.2fr 170px 170px 40px;
+    grid-template-columns: 24px 0.8fr 1.2fr 170px 170px 80px;
     gap: 0.5rem;
     align-items: start;
     padding: 0.5rem 0;
@@ -245,6 +245,37 @@
     border-color: #f87171;
   }
   .remove-btn svg { width: 16px; height: 16px; }
+  .row-actions {
+    display: flex;
+    gap: 0.35rem;
+    padding-top: 0.1rem;
+  }
+  .archive-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 0.5rem;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .archive-btn:hover {
+    background: rgba(100, 116, 139, 0.15);
+    border-color: #64748b;
+    color: #94a3b8;
+  }
+  .archive-btn svg { width: 16px; height: 16px; }
+  .city-row.archived { opacity: 0.45; }
+  .city-row.archived .archive-btn {
+    color: #fbbf24;
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+  }
   .config-actions {
     display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center;
   }
@@ -415,6 +446,8 @@ function createCityRow(data = {}) {
   row.className = "city-row";
   row.dataset.latitude = data.latitude || "";
   row.dataset.longitude = data.longitude || "";
+  row.dataset.archived = data.archived ? "true" : "";
+  if (data.archived) row.classList.add("archived");
 
   const coordsLabel = (data.latitude && data.longitude) ? `${data.latitude}, ${data.longitude}` : "";
 
@@ -429,7 +462,10 @@ function createCityRow(data = {}) {
     </div>
     <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
     <div><label>End</label><input type="date" data-field="end_date" value="${data.end_date || ""}"></div>
-    <div><button class="remove-btn" title="Remove project"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>
+    <div class="row-actions">
+      <button class="archive-btn" title="${data.archived ? "Unarchive project" : "Archive project"}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></button>
+      <button class="remove-btn" title="Remove project"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+    </div>
   `;
 
   const searchInput = row.querySelector(".city-search");
@@ -481,6 +517,11 @@ function createCityRow(data = {}) {
   });
 
   row.querySelector(".remove-btn").addEventListener("click", () => row.remove());
+  row.querySelector(".archive-btn").addEventListener("click", () => {
+    const isArchived = row.classList.toggle("archived");
+    row.dataset.archived = isArchived ? "true" : "";
+    row.querySelector(".archive-btn").title = isArchived ? "Unarchive project" : "Archive project";
+  });
 
   const handle = row.querySelector(".drag-handle");
   handle.addEventListener("dragstart", (e) => {
@@ -537,6 +578,7 @@ function getCityInputs() {
     });
     obj.latitude = parseFloat(row.dataset.latitude) || 0;
     obj.longitude = parseFloat(row.dataset.longitude) || 0;
+    obj.archived = row.dataset.archived === "true";
     return obj;
   }).filter(c => c.project && c.city && c.latitude && c.longitude);
 }
@@ -630,7 +672,8 @@ function populateSelect() {
 
   const hasData = typeof HUMIDITY_DATA !== "undefined" && Object.keys(HUMIDITY_DATA).length > 0;
 
-  for (const { project, city } of cities) {
+  for (const { project, city, archived } of cities) {
+    if (archived) continue;
     const opt = document.createElement("option");
     opt.value = project;
     const shortCity = city.split(",").slice(0, 2).join(",").trim();

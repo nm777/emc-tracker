@@ -7,6 +7,11 @@ The version number follows [semantic versioning](https://semver.org/):
 - **Minor** — new features (backward compatible)
 - **Patch** — bug fixes and small improvements (backward compatible)
 
+## [1.3.0] — 2026-06-17
+
+### Added
+- Archive/hide projects from the dropdown without deleting their data — toggle via archive button in the config panel
+
 ## [1.2.0] — 2026-06-17
 
 ### Added
