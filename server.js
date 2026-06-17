@@ -6,6 +6,7 @@ import { dirname } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
+const VERSION = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf-8")).version;
 
 process.on("uncaughtException", (err) => console.error("UNCAUGHT:", err));
 process.on("unhandledRejection", (err) => console.error("UNHANDLED REJECTION:", err));
@@ -141,7 +142,9 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/") {
-    return serveStatic(res, join(__dirname, "index.html"));
+    const html = readFileSync(join(__dirname, "index.html"), "utf-8").replace("__VERSION__", VERSION);
+    res.writeHead(200, { "Content-Type": "text/html" });
+    return res.end(html);
   }
 
   if (req.method === "GET" && url.pathname === "/api/cities") {
