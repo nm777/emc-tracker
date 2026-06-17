@@ -136,7 +136,7 @@
   }
   .city-row {
     display: grid;
-    grid-template-columns: 0.8fr 1.2fr 170px 170px 40px;
+    grid-template-columns: 24px 0.8fr 1.2fr 170px 170px 40px;
     gap: 0.5rem;
     align-items: start;
     padding: 0.5rem 0;
@@ -152,7 +152,21 @@
     align-items: center;
   }
   .city-row.header > div { padding-left: calc(1rem + 1px); }
+  .city-row.header > div:first-child,
   .city-row.header > div:last-child { padding-left: 0; }
+  .drag-handle {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.6rem;
+    cursor: grab;
+    color: #475569;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle svg { width: 16px; height: 16px; }
+  .city-row.dragging { opacity: 0.4; }
+  .city-row.drag-over-top { box-shadow: inset 0 2px 0 #3b82f6; }
+  .city-row.drag-over-bottom { box-shadow: inset 0 -2px 0 #3b82f6; }
   .city-row label { display: none; }
   .loc-display {
     font-size: 0.7rem;
@@ -306,6 +320,7 @@
     <h3>Project Configuration</h3>
     <div id="cityList">
       <div class="city-row header">
+        <div></div>
         <div>Project Name</div>
         <div>Address</div>
         <div>Start Date</div>
@@ -364,6 +379,7 @@
 const IS_SERVER = window.location.protocol === "http:" || window.location.protocol === "https:";
 let cities = [];
 let emcChart = null, swingChart = null;
+let draggedRow = null;
 
 const select = document.getElementById("projectSelect");
 const statsEl = document.getElementById("stats");
@@ -403,6 +419,7 @@ function createCityRow(data = {}) {
   const coordsLabel = (data.latitude && data.longitude) ? `${data.latitude}, ${data.longitude}` : "";
 
   row.innerHTML = `
+    <div class="drag-handle" draggable="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>
     <div><label>Project</label><input type="text" data-field="project" value="${data.project || ""}" placeholder="Project name"></div>
     <div class="city-search-wrap">
       <label>Address</label>
@@ -464,6 +481,42 @@ function createCityRow(data = {}) {
   });
 
   row.querySelector(".remove-btn").addEventListener("click", () => row.remove());
+
+  const handle = row.querySelector(".drag-handle");
+  handle.addEventListener("dragstart", (e) => {
+    draggedRow = row;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", "");
+    e.dataTransfer.setDragImage(row, 0, 0);
+    setTimeout(() => row.classList.add("dragging"), 0);
+  });
+  handle.addEventListener("dragend", () => {
+    row.classList.remove("dragging");
+    cityList.querySelectorAll(".drag-over-top,.drag-over-bottom").forEach(r => {
+      r.classList.remove("drag-over-top", "drag-over-bottom");
+    });
+    draggedRow = null;
+  });
+  row.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (!draggedRow || draggedRow === row) return;
+    const rect = row.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    row.classList.remove("drag-over-top", "drag-over-bottom");
+    row.classList.add(e.clientY < midpoint ? "drag-over-top" : "drag-over-bottom");
+  });
+  row.addEventListener("dragleave", () => {
+    row.classList.remove("drag-over-top", "drag-over-bottom");
+  });
+  row.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const insertAfter = row.classList.contains("drag-over-bottom");
+    row.classList.remove("drag-over-top", "drag-over-bottom");
+    if (draggedRow && draggedRow !== row) {
+      row.parentNode.insertBefore(draggedRow, insertAfter ? row.nextSibling : row);
+    }
+  });
+
   return row;
 }
 

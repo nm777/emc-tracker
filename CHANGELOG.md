@@ -7,6 +7,11 @@ The version number follows [semantic versioning](https://semver.org/):
 - **Minor** — new features (backward compatible)
 - **Patch** — bug fixes and small improvements (backward compatible)
 
+## [1.2.0] — 2026-06-17
+
+### Added
+- Drag-and-drop reordering of projects in the config panel using a grip handle
+
 ## [1.1.2] — 2026-06-17
 
 ### Fixed
