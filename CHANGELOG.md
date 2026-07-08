@@ -7,6 +7,11 @@ The version number follows [semantic versioning](https://semver.org/):
 - **Minor** — new features (backward compatible)
 - **Patch** — bug fixes and small improvements (backward compatible)
 
+## [1.4.0] — 2026-07-07
+
+### Added
+- Per-project toggle between address entry and manual lat/long coordinate entry, for sites where the home is not yet built and no address exists. Address is now optional; coordinates can be typed directly when an address cannot be found.
+
 ## [1.3.1] — 2026-06-17
 
 ### Changed

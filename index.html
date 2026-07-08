@@ -136,7 +136,7 @@
   }
   .city-row {
     display: grid;
-    grid-template-columns: 24px 0.8fr 1.2fr 170px 170px 80px;
+    grid-template-columns: 24px 0.8fr 1.2fr 92px 170px 170px 80px;
     gap: 0.5rem;
     align-items: start;
     padding: 0.5rem 0;
@@ -207,6 +207,30 @@
     color: #64748b;
     margin-top: 0.15rem;
   }
+  .loc-mode-btn {
+    padding: 0.5rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .loc-mode-btn:hover { border-color: #3b82f6; color: #e2e8f0; }
+  .loc-mode-btn.coords { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  .loc-coords {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .loc-coords input { flex: 1; min-width: 0; }
+  .loc-coords input::-webkit-outer-spin-button,
+  .loc-coords input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .loc-coords input[type="number"] { -moz-appearance: textfield; }
   .btn {
     padding: 0.35rem 0.75rem;
     border-radius: 0.375rem;
@@ -353,7 +377,8 @@
       <div class="city-row header">
         <div></div>
         <div>Project Name</div>
-        <div>Address</div>
+        <div>Location</div>
+        <div>Mode</div>
         <div>Start Date</div>
         <div>End Date</div>
         <div></div>
@@ -455,11 +480,18 @@ function createCityRow(data = {}) {
     <div class="drag-handle" draggable="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></div>
     <div><label>Project</label><input type="text" data-field="project" value="${data.project || ""}" placeholder="Project name"></div>
     <div class="city-search-wrap">
-      <label>Address</label>
-      <input type="text" class="city-search" data-field="city" value="${data.city || ""}" placeholder="Address, city, or zip (e.g. 123 Main St, Hopkins, MN)" autocomplete="off">
-      <div class="city-suggestions"></div>
-      <div class="loc-display">${coordsLabel ? "Coords: " + coordsLabel : ""}</div>
+      <label>Location</label>
+      <div class="loc-address">
+        <input type="text" class="city-search" data-field="city" value="${data.city || ""}" placeholder="Address, city, or zip (e.g. 123 Main St, Hopkins, MN)" autocomplete="off">
+        <div class="city-suggestions"></div>
+        <div class="loc-display">${coordsLabel ? "Coords: " + coordsLabel : ""}</div>
+      </div>
+      <div class="loc-coords" style="display:none">
+        <input type="number" data-field="latitude" step="any" placeholder="Latitude" value="${data.latitude || ""}">
+        <input type="number" data-field="longitude" step="any" placeholder="Longitude" value="${data.longitude || ""}">
+      </div>
     </div>
+    <div><button type="button" class="loc-mode-btn">Address</button></div>
     <div><label>Start</label><input type="date" data-field="start_date" value="${data.start_date || ""}"></div>
     <div><label>End</label><input type="date" data-field="end_date" value="${data.end_date || ""}"></div>
     <div class="row-actions">
@@ -471,7 +503,38 @@ function createCityRow(data = {}) {
   const searchInput = row.querySelector(".city-search");
   const suggestions = row.querySelector(".city-suggestions");
   const locDisplay = row.querySelector(".loc-display");
+  const latInput = row.querySelector('input[data-field="latitude"]');
+  const lonInput = row.querySelector('input[data-field="longitude"]');
+  const locAddress = row.querySelector(".loc-address");
+  const locCoords = row.querySelector(".loc-coords");
+  const locModeBtn = row.querySelector(".loc-mode-btn");
   let searchTimeout;
+
+  function setLocMode(mode) {
+    row.dataset.locationMode = mode;
+    const isCoords = mode === "coords";
+    locModeBtn.textContent = isCoords ? "Coords" : "Address";
+    locModeBtn.classList.toggle("coords", isCoords);
+    locModeBtn.title = isCoords ? "Switch to address entry" : "Switch to coordinate entry";
+    if (isCoords) {
+      latInput.value = row.dataset.latitude || "";
+      lonInput.value = row.dataset.longitude || "";
+      locAddress.style.display = "none";
+      locCoords.style.display = "flex";
+    } else {
+      locCoords.style.display = "none";
+      locAddress.style.display = "block";
+    }
+  }
+
+  locModeBtn.addEventListener("click", () => {
+    setLocMode(row.dataset.locationMode === "coords" ? "address" : "coords");
+  });
+
+  latInput.addEventListener("input", () => { row.dataset.latitude = latInput.value; });
+  lonInput.addEventListener("input", () => { row.dataset.longitude = lonInput.value; });
+
+  setLocMode(data.location_mode || "address");
 
   searchInput.addEventListener("input", () => {
     clearTimeout(searchTimeout);
@@ -502,6 +565,8 @@ function createCityRow(data = {}) {
             searchInput.value = r.display_name;
             row.dataset.latitude = r.lat;
             row.dataset.longitude = r.lon;
+            latInput.value = r.lat;
+            lonInput.value = r.lon;
             locDisplay.textContent = `Coords: ${r.lat}, ${r.lon}`;
             suggestions.classList.remove("open");
           });
@@ -579,8 +644,9 @@ function getCityInputs() {
     obj.latitude = parseFloat(row.dataset.latitude) || 0;
     obj.longitude = parseFloat(row.dataset.longitude) || 0;
     obj.archived = row.dataset.archived === "true";
+    obj.location_mode = row.dataset.locationMode || "address";
     return obj;
-  }).filter(c => c.project && c.city && c.latitude && c.longitude);
+  }).filter(c => c.project && c.latitude && c.longitude);
 }
 
 addCityBtn.addEventListener("click", () => {
@@ -593,12 +659,12 @@ saveConfigBtn.addEventListener("click", async () => {
   let hasIncomplete = false;
   rows.forEach(row => {
     const project = row.querySelector('input[data-field="project"]').value.trim();
-    const city = row.querySelector('input[data-field="city"]').value.trim();
     const lat = parseFloat(row.dataset.latitude);
-    if (project && (!city || !lat)) hasIncomplete = true;
+    const lon = parseFloat(row.dataset.longitude);
+    if (project && (!lat || !lon)) hasIncomplete = true;
   });
   if (hasIncomplete) {
-    saveStatus.textContent = "Some projects need an address — select from the suggestions";
+    saveStatus.textContent = "Some projects need coordinates — select an address or enter lat/long manually";
     saveStatus.style.color = "#f87171";
     saveStatus.style.display = "inline";
     setTimeout(() => saveStatus.style.display = "none", 4000);
@@ -673,12 +739,12 @@ function populateSelect() {
 
   const hasData = typeof HUMIDITY_DATA !== "undefined" && Object.keys(HUMIDITY_DATA).length > 0;
 
-  for (const { project, city, archived } of cities) {
+  for (const { project, city, latitude, longitude, archived } of cities) {
     if (archived) continue;
     const opt = document.createElement("option");
     opt.value = project;
-    const shortCity = city.split(",").slice(0, 2).join(",").trim();
-    opt.textContent = `${project} — ${shortCity}`;
+    const locLabel = city ? city.split(",").slice(0, 2).join(",").trim() : `${latitude}, ${longitude}`;
+    opt.textContent = `${project} — ${locLabel}`;
     if (hasData && HUMIDITY_DATA[project]) {
       opt.textContent += ` (${HUMIDITY_DATA[project].days.length} days)`;
     }
