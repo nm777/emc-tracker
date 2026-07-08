@@ -4,6 +4,22 @@ A tool for tracking Equilibrium Moisture Content (EMC) at construction project s
 
 Built for construction professionals who need defensible evidence that wood defects were caused by uncontrolled humidity — not workmanship.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Installing Node.js](#installing-nodejs)
+- [Installing This App](#installing-this-app)
+- [Upgrading](#upgrading)
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
+  - [Adding Projects](#adding-projects)
+  - [Understanding the Chart](#understanding-the-chart)
+  - [Ongoing Collection](#ongoing-collection)
+- [What is EMC?](#what-is-emc)
+- [Files](#files)
+- [Running Without the Server](#running-without-the-server)
+- [License](#license)
+
 ## Requirements
 
 - **A Mac or Windows PC**
